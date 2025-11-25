@@ -10,19 +10,23 @@ const generateToken = (userId) => {
 // 🧩 Signup Controller
 export const signup = async (req, res) => {
   try {
-    const { username,email, password } = req.body;
+    const { username, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ username });
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
     if (existingUser) {
-      return res.status(400).json({ message: 'Username already exists' });
+      const conflictField = existingUser.email === email ? "Email" : "Username";
+      return res.status(400).json({ message: `${conflictField} already exists` });
     }
 
     // Hash password
     const hashedPassword = await hashPassword(password);
 
     // Create new user
-    const user = new User({ username,email, password: hashedPassword });
+    const user = new User({ username, email, password: hashedPassword });
     await user.save();
 
     // Generate token
@@ -31,6 +35,7 @@ export const signup = async (req, res) => {
     res.status(201).json({
       id: user._id,
       username: user.username,
+      email: user.email,
       token
     });
   } catch (error) {
@@ -41,10 +46,18 @@ export const signup = async (req, res) => {
 // 🧩 Login Controller
 export const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { identifier, username, email, password } = req.body;
+    const lookupValue = identifier || username || email;
 
-    // Find user
-    const user = await User.findOne({ username });
+    if (!lookupValue || !password) {
+      return res.status(400).json({ message: "Username or email and password are required" });
+    }
+
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [{ username: lookupValue }, { email: lookupValue }],
+    });
+
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -61,6 +74,7 @@ export const login = async (req, res) => {
     res.status(200).json({
       id: user._id,
       username: user.username,
+      email: user.email,
       token,
       
     });

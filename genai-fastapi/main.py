@@ -37,6 +37,8 @@ def call_groq(prompt: str) -> str:
 
 class RoadmapRequest(BaseModel):
     topic: str
+    duration: str = "1 month"     # Optional string with default
+    level: str = "beginner"
 
 @app.post("/generate-roadmap")
 async def generate_roadmap(request: RoadmapRequest):
