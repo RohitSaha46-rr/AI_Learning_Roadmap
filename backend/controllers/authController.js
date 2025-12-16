@@ -2,9 +2,11 @@ import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
 import { hashPassword, comparePassword } from '../utils/hashPassword.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
+
 // Function to generate token
 const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '30d' });
 };
 
 // 🧩 Signup Controller
@@ -12,14 +14,18 @@ export const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Username, email and password are required" });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
+         email 
     });
 
     if (existingUser) {
-      const conflictField = existingUser.email === email ? "Email" : "Username";
-      return res.status(400).json({ message: `${conflictField} already exists` });
+     
+      return res.status(400).json({ message: `{$existingUser.email} already exists` });
     }
 
     // Hash password
@@ -39,6 +45,7 @@ export const signup = async (req, res) => {
       token
     });
   } catch (error) {
+    console.error("Signup error:", error);
     res.status(500).json({ message: 'Server error during signup' });
   }
 };
@@ -79,6 +86,7 @@ export const login = async (req, res) => {
       
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: 'Server error during login' });
   }
 };

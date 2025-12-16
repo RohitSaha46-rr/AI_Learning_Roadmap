@@ -7,16 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signupUser } from "@/services/api";
+
+import { useSignupUserMutation } from "@/features/auth/authApiSlice";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/features/auth/authSlice";
 
 export default function Signup() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const [signupUser, { isLoading }] = useSignupUserMutation();
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
   });
-  const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
   const handleChange = (event) => {
@@ -29,13 +36,22 @@ export default function Signup() {
     setError("");
 
     try {
-      setLoading(true);
-      await signupUser(formData);
-      navigate("/login", { replace: true, state: { email: formData.email } });
+      const response = await signupUser(formData).unwrap();
+
+      dispatch(
+        setCredentials({
+          user: {
+            id: response.id,
+            username: response.username,
+            email: response.email,
+          },
+          token: response.token,
+        })
+      );
+
+      navigate("/login/userPage", { replace: true });
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setError(err?.data?.message || "Signup failed");
     }
   };
 
@@ -48,17 +64,18 @@ export default function Signup() {
             <div className="mx-auto w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center">
               <Brain className="w-6 h-6 text-[#11a4d4]" />
             </div>
-            <CardTitle className="text-2xl text-gray-900">Create Account</CardTitle>
+            <CardTitle className="text-2xl text-gray-900">
+              Create Account
+            </CardTitle>
             <p className="text-sm text-gray-500">
               Start your AI-powered learning journey today
             </p>
           </CardHeader>
+
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2 text-left">
-                <Label htmlFor="fullName" className="text-sm font-semibold text-gray-700">
-                  Full Name
-                </Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
                   name="fullName"
@@ -68,10 +85,9 @@ export default function Signup() {
                   required
                 />
               </div>
+
               <div className="space-y-2 text-left">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                  Email
-                </Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -82,10 +98,9 @@ export default function Signup() {
                   required
                 />
               </div>
+
               <div className="space-y-2 text-left">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                  Password
-                </Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   name="password"
@@ -106,14 +121,18 @@ export default function Signup() {
               <Button
                 type="submit"
                 className="w-full h-12 text-base bg-[#11a4d4] hover:bg-[#0f8bb8]"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? "Creating account..." : "Create Account"}
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
+
             <p className="text-center text-sm text-gray-600 mt-6">
               Already have an account?{" "}
-              <Link to="/login" className="text-[#11a4d4] font-semibold hover:underline">
+              <Link
+                to="/login"
+                className="text-[#11a4d4] font-semibold hover:underline"
+              >
                 Sign in
               </Link>
             </p>
@@ -123,4 +142,3 @@ export default function Signup() {
     </div>
   );
 }
-

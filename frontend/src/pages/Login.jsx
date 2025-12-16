@@ -7,16 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser } from "@/services/api";
+
+import { useLoginUserMutation } from "@/features/auth/authApiSlice";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/features/auth/authSlice";
 
 export default function Login() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [loginUser, { isLoading }] = useLoginUserMutation();
+
   const [formData, setFormData] = useState({
     identifier: location.state?.email || "",
     password: "",
   });
-  const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
   const handleChange = (event) => {
@@ -27,14 +34,24 @@ export default function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
     try {
-      setLoading(true);
-      await loginUser(formData);
+      const response = await loginUser(formData).unwrap();
+
+      dispatch(
+        setCredentials({
+          user: {
+            id: response.id,
+            username: response.username,
+            email: response.email,
+          },
+          token: response.token,
+        })
+      );
+
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setError(err?.data?.message || "Login failed");
     }
   };
 
@@ -47,17 +64,18 @@ export default function Login() {
             <div className="mx-auto w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center">
               <Brain className="w-6 h-6 text-[#11a4d4]" />
             </div>
-            <CardTitle className="text-2xl text-gray-900">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl text-gray-900">
+              Welcome Back
+            </CardTitle>
             <p className="text-sm text-gray-500">
-              Sign in with the credentials you used to create your account
+              Sign in with the credentials you created
             </p>
           </CardHeader>
+
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2 text-left">
-                <Label htmlFor="identifier" className="text-sm font-semibold text-gray-700">
-                  Email or Username
-                </Label>
+                <Label htmlFor="identifier">Email or Username</Label>
                 <Input
                   id="identifier"
                   name="identifier"
@@ -67,10 +85,9 @@ export default function Login() {
                   required
                 />
               </div>
+
               <div className="space-y-2 text-left">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                  Password
-                </Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   name="password"
@@ -91,14 +108,18 @@ export default function Login() {
               <Button
                 type="submit"
                 className="w-full h-12 text-base bg-[#11a4d4] hover:bg-[#0f8bb8]"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
+
             <p className="text-center text-sm text-gray-600 mt-6">
               Don’t have an account?{" "}
-              <Link to="/signup" className="text-[#11a4d4] font-semibold hover:underline">
+              <Link
+                to="/signup"
+                className="text-[#11a4d4] font-semibold hover:underline"
+              >
                 Create one
               </Link>
             </p>
@@ -108,4 +129,3 @@ export default function Login() {
     </div>
   );
 }
-
