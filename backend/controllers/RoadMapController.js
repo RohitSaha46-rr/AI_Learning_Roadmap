@@ -20,6 +20,9 @@ export const createAIRoadmap = async (req, res) => {
   try {
     const { topic, duration = "1 month", level = "beginner" } = req.body;
     
+    console.log("📝 Creating AI roadmap for topic:", topic);
+    console.log("👤 User from request:", req.user ? `Found (${req.user.id})` : "Not found");
+    
     const fastapiUrl = `${process.env.FASTAPI_URL}/generate-roadmap`;
     
     console.log("Calling FastAPI:", fastapiUrl);
@@ -50,8 +53,11 @@ export const createAIRoadmap = async (req, res) => {
     }
 
     // Save to DB - direct mapping
+    const userId = req.user?.id || null;
+    console.log("💾 Saving roadmap with userId:", userId);
+    
     const roadmap = await Roadmap.create({
-      userId: req.user?.id || "dummy",
+      userId: userId,
       title: data.roadmap.title || `Learn ${topic}`,
       mode: "AI",
       description: `AI-generated roadmap for ${topic}`,
@@ -63,6 +69,7 @@ export const createAIRoadmap = async (req, res) => {
       }
     });
 
+    console.log("✅ Roadmap saved successfully:", roadmap._id);
     res.json({
       message: data.message,
       roadmap: roadmap

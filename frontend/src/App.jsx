@@ -13,7 +13,8 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route path="/login/userPage" element={<UserHome />} />
-      <Route path="/roadmap/:id" element={<RoadmapViewer />} />
+      
+      <Route path="/roadmap/new" element={<RoadmapViewer />} />
     </Routes>
   );
 }

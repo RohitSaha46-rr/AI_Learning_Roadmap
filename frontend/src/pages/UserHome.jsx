@@ -6,16 +6,50 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
+import { useGenerateRoadmapMutation } from "@/features/roadmap/roadmapApiSlice";
 
 const UserHome = () => {
-  const { user } = useSelector((state) => state.auth || {});
-  const [learningInput, setLearningInput] = useState();
+  const { user, token } = useSelector((state) => state.auth || {});
+  const [learningInput, setLearningInput] = useState("");
   const navigate = useNavigate();
+  const [generateRoadmap, { isLoading }] = useGenerateRoadmapMutation();
 
-  const handleGenerateRoadmap = () => {
-    // TODO: Implement roadmap generation logic
-    navigate("/RoadmapViewer")
-    console.log("Generating roadmap for:", learningInput);
+  const handleGenerateRoadmap = async () => {
+    if (!learningInput.trim()) {
+      return;
+    }
+
+    // Check token from both Redux and localStorage
+    const authData = JSON.parse(localStorage.getItem("authUser") || "{}");
+    const currentToken = token || authData?.token;
+    
+    console.log("🔍 Checking token before API call:");
+    console.log("  - Redux token:", token ? "✅ Found" : "❌ Not found");
+    console.log("  - localStorage token:", authData?.token ? "✅ Found" : "❌ Not found");
+    console.log("  - Using token:", currentToken ? "✅ Yes" : "❌ No");
+
+    if (!currentToken) {
+      console.error("❌ No token found. Please login again.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      console.log("🚀 Calling generateRoadmap API...");
+      const result = await generateRoadmap({ topic: learningInput.trim() }).unwrap();
+      console.log("✅ Roadmap generated successfully:", result);
+      navigate("/roadmap/new", { state: { roadmap: result.roadmap, topic: learningInput.trim() } });
+    } catch (error) {
+      console.error("❌ Error generating roadmap:", error);
+      console.error("  - Status:", error.status);
+      console.error("  - Data:", error.data);
+      if (error.status === 401) {
+        console.error("⚠️ Unauthorized - token may be invalid or expired");
+        // Try to reload token from localStorage
+        const freshAuth = JSON.parse(localStorage.getItem("authUser") || "{}");
+        console.log("  - Fresh token check:", freshAuth?.token ? "Found" : "Not found");
+      }
+    }
   };
 
   return (
@@ -55,9 +89,10 @@ const UserHome = () => {
                 onClick={handleGenerateRoadmap}
                 variant="customBlue"
                 className="gap-2"
+                disabled={isLoading || !learningInput.trim()}
               >
                 <Brain className="w-4 h-4" />
-                Generate Roadmap
+                {isLoading ? "Generating..." : "Generate Roadmap"}
               </Button>
             </div>
           </CardContent>

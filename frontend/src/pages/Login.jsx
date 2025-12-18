@@ -49,7 +49,7 @@ export default function Login() {
         })
       );
 
-      navigate("/", { replace: true });
+      navigate("/login/userPage", { replace: true });
     } catch (err) {
       setError(err?.data?.message || "Login failed");
     }
